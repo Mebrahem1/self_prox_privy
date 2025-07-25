@@ -3,7 +3,7 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const app = express();
-const ORIGIN = 'https://origin.example.com';
+const ORIGIN = 'https://clthf5zo505s513atuph9xful.api.privy.systems';
 
 const proxyOptions = {
   target: ORIGIN,
