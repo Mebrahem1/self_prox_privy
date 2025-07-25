@@ -8,7 +8,7 @@ export const config = {
   }
 };
 
-const ORIGIN = process.env.ORIGIN; // e.g. "https://origin.example.com"
+const ORIGIN = "https://clthf5zo505s513atuph9xful.api.privy.systems"; // e.g. "https://origin.example.com"
 
 const proxy = createProxyMiddleware({
   target: ORIGIN,
