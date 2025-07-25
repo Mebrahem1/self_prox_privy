@@ -1,0 +1,11 @@
+{
+  "name": "vercel-reverse-proxy",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "http-proxy-middleware": "^2.0.6"
+  }
+}
